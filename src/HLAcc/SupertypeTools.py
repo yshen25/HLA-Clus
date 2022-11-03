@@ -2,7 +2,7 @@
 """
 High-level tools for HLA clustering
 """
-from turtle import width
+# from turtle import width
 from sklearn.cluster import DBSCAN, AgglomerativeClustering
 import pandas as pd
 import numpy as np
@@ -13,8 +13,8 @@ import seaborn as sn
 from scipy.stats import linregress
 from scipy.optimize import linear_sum_assignment
 
-from .FA_metric import Calculator
-from .CG_metric import CG_SD_Calculator
+# from lib.FA_metric import Calculator
+from lib.CG_metric import CG_SD_Calculator
 
 from Bio import SeqIO, Align
 from itertools import combinations
@@ -22,16 +22,16 @@ from itertools import combinations
 # from sklearn.linear_model import LinearRegression
 
 # ==== Calculating distance matrix ====
-def CalcMat(DATDir, AlleleListFile):
-    """
-    Using all-atom distance metric
-    """
+# def CalcMat(DATDir, AlleleListFile):
+#     """
+#     Using all-atom distance metric
+#     """
 
-    calc = Calculator(DATDir, AlleleListFile)
+#     calc = Calculator(DATDir, AlleleListFile)
 
-    calc.CalcDist()
+#     calc.CalcDist()
 
-    return calc.DistMat
+#     return calc.DistMat
 
 def CGCalcMat(CGDATDir, AlleleListFile, SimMtx="Grantham", sigma=None, k=None, DistMat_output=None, Standardize:bool=False):
     """

@@ -5,6 +5,7 @@ with open('README.md', 'r', encoding='utf-8') as fh:
 
 setuptools.setup(
     name='HLAcc',
+    version='1.0.0',
     author='Yue (Shawn) Shen',
     author_email='yshen25@vols.utk.edu',
     description='Package for HLA clustering based on coarse-grained structures',
@@ -18,7 +19,8 @@ setuptools.setup(
         'Source Code': 'https://github.com/yshen25/HLAcc'
     },
     package_dir={'': 'src'},
-    packages=setuptools.find_packages(where='src'),
+    packages=['HLAcc'],
+    # packages=setuptools.find_packages(where='src'),
     classifiers=[
         # see https://pypi.org/classifiers/
         'Development Status :: 5 - Production/Stable',
@@ -28,6 +30,6 @@ setuptools.setup(
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Operating System :: OS Independent'
     ],
-    python_requires='==3.8',
-    install_requires=['numpy', 'scipy', 'pandas', 'biopandas', 'pymol-bundle', 'biopython', 'matplotlib', 'seaborn', 'scikit-learn']
+    python_requires='>=3.8, <3.9',
+    install_requires=['numpy', 'scipy', 'pandas', 'biopandas', 'biopython', 'matplotlib', 'seaborn', 'scikit-learn', 'pymol']
 )

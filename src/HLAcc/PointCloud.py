@@ -26,7 +26,7 @@ from biopandas.pdb import PandasPdb
 import matplotlib.cm as cm
 # import open3d as o3d
 
-from .PropertyParams import AtomicMass, PartialCharge, AtomicHydrophobicity
+from lib.PropertyParams import AtomicMass, PartialCharge, AtomicHydrophobicity
 
 def _Seqinfo_from_struct(Struct):
     # Struct = PandasPdb().read_pdb(PDBfile)
@@ -277,28 +277,29 @@ def PDB_to_AtomCloud(InDir, OutDir):
         # depth = np.min(dist2ligand, axis=1)
 
         # depth and acceptance are set to 1 initially
-        depth = accpt = np.ones((ATOMS.shape[0],1))
+        # depth = accpt = np.ones((ATOMS.shape[0],1))
         
         # atomic partial charge and hydrophobicity
         basic_info = ATOMS[["residue_name", "chain_id", "residue_number", "atom_name", "atom_number", "x_coord", "y_coord", "z_coord"]].to_numpy()
-        charge_hydro = []
-        for row in basic_info:
-            atom = row[3].lstrip(digits)
-            resi = row[0]
+        # charge_hydro = []
+        # for row in basic_info:
+        #     atom = row[3].lstrip(digits)
+        #     resi = row[0]
 
-            charge = ffcharge[resi][atom]
+        #     charge = ffcharge[resi][atom]
 
-            if resi in ["HIE", "HIP", "HID"]: # change back to normal HIS
-                row[0] = resi = "HIS"
+        #     if resi in ["HIE", "HIP", "HID"]: # change back to normal HIS
+        #         row[0] = resi = "HIS"
 
-            hydro = np.nan if atom.startswith("H") else ffhydro[resi][atom] # hydrophobicity doesn't distinguish HIS types
+        #     hydro = np.nan if atom.startswith("H") else ffhydro[resi][atom] # hydrophobicity doesn't distinguish HIS types
             
             
-            charge_hydro.append([charge, hydro])
+        #     charge_hydro.append([charge, hydro])
 
-        OutList = np.hstack([basic_info, charge_hydro, depth, accpt])
+        # OutList = np.hstack([basic_info, charge_hydro, depth, accpt])
 
-        OutDF = pd.DataFrame(OutList, columns=["Residue", "Chain", "ResNum", "Atom", "AtomNum", "X", "Y", "Z", "Charge", "Hydrophobicity", "Depth", "Accept"])
+        # OutDF = pd.DataFrame(OutList, columns=["Residue", "Chain", "ResNum", "Atom", "AtomNum", "X", "Y", "Z", "Charge", "Hydrophobicity", "Depth", "Accept"])
+        OutDF = pd.DataFrame(basic_info, columns=["Residue", "Chain", "ResNum", "Atom", "AtomNum", "X", "Y", "Z"])
 
         OutDF.to_csv(f"{OutDir}/{Path(InPDB).stem}.csv", index=False)
 
