@@ -23,7 +23,6 @@ from Bio.Align import PairwiseAligner
 from Bio.PDB.DSSP import dssp_dict_from_pdb_file
 
 from biopandas.pdb import PandasPdb
-import matplotlib.cm as cm
 # import open3d as o3d
 
 from lib.PropertyParams import AtomicMass, PartialCharge, AtomicHydrophobicity
@@ -56,7 +55,8 @@ def _trim_renumber_struct(Struct, Qinfo, Tinfo):
 
 def PDB_trim(InDir, TemplatePDB, OutDir):
     # template struct object and chain info
-    Tstruct = PandasPdb().read_pdb(TemplatePDB)
+    # Tstruct = PandasPdb().read_pdb(TemplatePDB)
+    Tstruct = PandasPdb().read_pdb("../dat/1i4f_Crown.pdb")
     Tinfo = _Seqinfo_from_struct(Tstruct)
 
     aligner = PairwiseAligner()
@@ -122,7 +122,6 @@ def _centroid_structure(InPDBDir):
         RMSD_Mat.loc[pair[1],pair[0]] = BB_RMSD(pair[1], pair[0])
 
     RMSD_Mat = RMSD_Mat.add(RMSD_Mat.T, fill_value=0) # lower triangle to square
-    # print(RMSD_Mat)
     RMSD_sum = RMSD_Mat.sum(axis=1)
     return RMSD_sum.idxmin()
 
@@ -253,14 +252,6 @@ def PDB_to_AtomCloud(InDir, OutDir):
     """
     Assign parameters like partial charge to each atom, and store dataframe into csv file
     """
-    # with open('ffcharge.pkl', 'rb') as inf:
-    #     ffcharge = pickle.load(inf)
-
-    ffcharge = PartialCharge
-    ffhydro = AtomicHydrophobicity
-
-    # with open('pep_surf.pkl', 'rb') as inf:
-    #     pep = pickle.load(inf)
 
     if not os.path.exists(OutDir):
         os.makedirs(OutDir)
@@ -269,36 +260,9 @@ def PDB_to_AtomCloud(InDir, OutDir):
 
         pro = PandasPdb().read_pdb(InPDB)
         ATOMS = pro.df["ATOM"]
-        # atom_coord = ATOMS[['x_coord', 'y_coord', 'z_coord']]
-        # ligand_coord = pro.df['HETATM'][['x_coord', 'y_coord', 'z_coord']]
 
-        # atom to ligand distance is the minimum of atom to ligand-atom distances
-        # dist2ligand = cdist(atom_coord, ligand_coord, 'euclidean')
-        # depth = np.min(dist2ligand, axis=1)
-
-        # depth and acceptance are set to 1 initially
-        # depth = accpt = np.ones((ATOMS.shape[0],1))
-        
-        # atomic partial charge and hydrophobicity
         basic_info = ATOMS[["residue_name", "chain_id", "residue_number", "atom_name", "atom_number", "x_coord", "y_coord", "z_coord"]].to_numpy()
-        # charge_hydro = []
-        # for row in basic_info:
-        #     atom = row[3].lstrip(digits)
-        #     resi = row[0]
 
-        #     charge = ffcharge[resi][atom]
-
-        #     if resi in ["HIE", "HIP", "HID"]: # change back to normal HIS
-        #         row[0] = resi = "HIS"
-
-        #     hydro = np.nan if atom.startswith("H") else ffhydro[resi][atom] # hydrophobicity doesn't distinguish HIS types
-            
-            
-        #     charge_hydro.append([charge, hydro])
-
-        # OutList = np.hstack([basic_info, charge_hydro, depth, accpt])
-
-        # OutDF = pd.DataFrame(OutList, columns=["Residue", "Chain", "ResNum", "Atom", "AtomNum", "X", "Y", "Z", "Charge", "Hydrophobicity", "Depth", "Accept"])
         OutDF = pd.DataFrame(basic_info, columns=["Residue", "Chain", "ResNum", "Atom", "AtomNum", "X", "Y", "Z"])
 
         OutDF.to_csv(f"{OutDir}/{Path(InPDB).stem}.csv", index=False)
@@ -310,8 +274,6 @@ def CoarseGrain(InDAT, OutCGDAT):
     Coarse graining of single csv file
     center-of-mass of side chain
     """
-    # if OutFile is None:
-    #     OutFile = DATFile.split(".")[0] + "_CG.csv"
 
     FullAtom_df = pd.read_csv(InDAT)
     # DAT = DAT[~DAT.Atom.isin(["N", "CA", "C", "O"])] # filter out backbone atoms
@@ -364,18 +326,6 @@ def PointCloudCG(DATDir, OutDir):
     for InDAT in glob.glob(f"{DATDir}/*.csv"):
         CoarseGrain(InDAT, f"{OutDir}/{Path(InDAT).name}")
 
-    return
-
-def element_depth():
-    return
-
-def depth_threshold():
-    return
-
-def min_dist():
-    return
-
-def dist_threshold():
     return
 
 def PDBtoPointCloud(InputDir:Union[str, bytes, os.PathLike], AlignDir:Union[str, bytes, os.PathLike], 
@@ -460,23 +410,6 @@ class assign_weight:
     def save_CG_DAT(self):
         self.df.to_csv(self.filename)
         return
-
-# def Show_PointCloud(DATDir):
-#     pointcloudlist = []
-#     cmap = cm.ScalarMappable(cmap="coolwarm")
-#     for InDAT in glob.glob(f"{DATDir}/*.csv"):
-#         df = pd.read_csv(InDAT)
-#         P1 = o3d.geometry.PointCloud()
-#         coord = df[['X','Y','Z']].to_numpy()
-#         weight = df['Weight'].to_numpy()
-
-#         color1 = cmap.to_rgba(weight)[:,0:3]
-#         P1.points = o3d.utility.Vector3dVector(coord)
-#         P1.colors = o3d.utility.Vector3dVector(color1)
-#         pointcloudlist.append(P1)
-
-#     o3d.visualization.draw_geometries(pointcloudlist)
-#     return
 
 def reweight_by_dict(InDir, WeightDict):
     """
