@@ -6,7 +6,6 @@ The atomic or coarse-grained residue coordinates are stored in csv files
 """
 import os
 import glob
-from string import digits
 from itertools import combinations
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -16,7 +15,6 @@ from operator import itemgetter
 import shutil
 
 import numpy as np
-# from scipy.stats import hypsecant
 import pandas as pd
 from pymol import cmd
 from Bio.Align import PairwiseAligner
@@ -25,14 +23,14 @@ from Bio.PDB.DSSP import dssp_dict_from_pdb_file
 from biopandas.pdb import PandasPdb
 # import open3d as o3d
 
-from lib.PropertyParams import AtomicMass, PartialCharge, AtomicHydrophobicity
+from ._PropertyParams import AtomicMass
 
 def _Seqinfo_from_struct(Struct):
     # Struct = PandasPdb().read_pdb(PDBfile)
     Seq_df = Struct.amino3to1()
 
     info = {} # chain: (start, stop, sequence)
-    for group in Struct.df['ATOM'].groupby(['chain_id']):
+    for group in Struct.df['ATOM'].groupby('chain_id'):
         # group[0]: chain id
         sequence = ''.join(list(Seq_df[Seq_df['chain_id'] == group[0]]['residue_name']))
         info[group[0]] = [group[1].iloc[0]['residue_number'], group[1].iloc[-1]['residue_number'], sequence]
@@ -55,8 +53,7 @@ def _trim_renumber_struct(Struct, Qinfo, Tinfo):
 
 def PDB_trim(InDir, TemplatePDB, OutDir):
     # template struct object and chain info
-    # Tstruct = PandasPdb().read_pdb(TemplatePDB)
-    Tstruct = PandasPdb().read_pdb("../dat/1i4f_Crown.pdb")
+    Tstruct = PandasPdb().read_pdb(TemplatePDB)
     Tinfo = _Seqinfo_from_struct(Tstruct)
 
     aligner = PairwiseAligner()
@@ -193,7 +190,7 @@ def PDB_align(InDir, OutDir, refPDB=None, SSAlign=False, AddH_only=False):
         _, RAchRange = _alphaNbeta(refPDB)
 
     cmd.load(refPDB, "template")
-    tmp = NamedTemporaryFile().name
+    tmp = NamedTemporaryFile(suffix=".pdb").name
 
     for InPDB in glob.glob(f"{InDir}/*.pdb"):
         # =============== PyMOL: align and add H ================
@@ -222,16 +219,8 @@ def PDB_align(InDir, OutDir, refPDB=None, SSAlign=False, AddH_only=False):
         new_df = Qstruct.df['ATOM']
         for residue in Qstruct.df['ATOM'].groupby('residue_number'):
 
-            if residue[1].iloc[0]["residue_name"] == "HIS":
-
-                if "HE2" in residue[1]['atom_name'].values:
-                    if "HD1" in residue[1]['atom_name'].values:
-                        change_resname(new_df, residue[0], "HIP") # H on both epsilon and delta N
-                    else:
-                        change_resname(new_df, residue[0], "HIE") # H on epsilon N only
-
-                else:
-                    change_resname(new_df, residue[0], "HID") # H on delta N only. By default HIS is HID
+            if residue[1].iloc[0]["residue_name"] in ["HID", "HIP", "HIE"]:
+                change_resname(new_df, residue[0], "HIS")
 
             elif residue[1].iloc[0]["residue_name"] == "MSE":
                 change_resname(new_df, residue[0], "MET") # no partial charge value for MSE
@@ -248,7 +237,7 @@ def PDB_align(InDir, OutDir, refPDB=None, SSAlign=False, AddH_only=False):
         
     return
 
-def PDB_to_AtomCloud(InDir, OutDir):
+def PDB2AtomCloud_batch(InDir, OutDir):
     """
     Assign parameters like partial charge to each atom, and store dataframe into csv file
     """
@@ -269,54 +258,7 @@ def PDB_to_AtomCloud(InDir, OutDir):
 
     return
 
-def CoarseGrain(InDAT, OutCGDAT):
-    """
-    Coarse graining of single csv file
-    center-of-mass of side chain
-    """
-
-    FullAtom_df = pd.read_csv(InDAT)
-    # DAT = DAT[~DAT.Atom.isin(["N", "CA", "C", "O"])] # filter out backbone atoms
-
-    ResGen = FullAtom_df.groupby(by=['Chain', 'ResNum'])
-
-    CG_row = []
-    for resi in ResGen:
-        x = y = z = 0
-        total_mass = 0
-        chain = resi[0][0]
-        resnum = resi[0][1]
-        resatoms_df = resi[1]
-        # print(resatoms)
-        resname = resatoms_df["Residue"].iloc[0]
-
-        for atom in resatoms_df[["Atom", "X", "Y", "Z"]].to_numpy():
-            # print(atom)
-            if atom[0] in ["N", "CA", "C", "O"]:
-                continue # filter out backbone atoms
-
-            if not atom[0][0].isdigit():
-                mass = AtomicMass[atom[0][0]] # real atom name is the first letter of pdb atom name
-
-            else:
-                mass = AtomicMass[atom[0][1]]
-
-            total_mass += mass
-            x += mass * atom[1]
-            y += mass * atom[2]
-            z += mass * atom[3]
-
-        if total_mass == 0:
-            CG_row.append([chain, resnum, resname, np.nan, np.nan, np.nan, 0])
-        else:
-            CG_row.append([chain, resnum, resname, x/total_mass, y/total_mass, z/total_mass, 1])
-
-    CG_DAT = pd.DataFrame(CG_row, columns=["Chain", "ResNum", "Residue", "X", "Y", "Z", "Weight"])
-    CG_DAT.to_csv(OutCGDAT, index=False)
-
-    return
-
-def PointCloudCG(DATDir, OutDir):
+def AtomCloud2CG_batch(DATDir, OutDir):
     """
     Coarse graining of atom cloud files
     ==================================
@@ -324,11 +266,48 @@ def PointCloudCG(DATDir, OutDir):
     Output: coarse-grained DAT file
     """
     for InDAT in glob.glob(f"{DATDir}/*.csv"):
-        CoarseGrain(InDAT, f"{OutDir}/{Path(InDAT).name}")
+        FullAtom_df = pd.read_csv(InDAT)
+
+        ResGen = FullAtom_df.groupby(by=['Chain', 'ResNum'])
+
+        CG_row = []
+        for resi in ResGen:
+            x = y = z = 0
+            total_mass = 0
+            chain = resi[0][0]
+            resnum = resi[0][1]
+            resatoms_df = resi[1]
+            # print(resatoms)
+            resname = resatoms_df["Residue"].iloc[0]
+
+            for atom in resatoms_df[["Atom", "X", "Y", "Z"]].to_numpy():
+                # print(atom)
+                if atom[0] in ["N", "CA", "C", "O"]:
+                    continue # filter out backbone atoms
+
+                if not atom[0][0].isdigit():
+                    mass = AtomicMass[atom[0][0]] # real atom name is the first letter of pdb atom name
+
+                else:
+                    mass = AtomicMass[atom[0][1]]
+
+                total_mass += mass
+                x += mass * atom[1]
+                y += mass * atom[2]
+                z += mass * atom[3]
+
+            if total_mass == 0:
+                CG_row.append([chain, resnum, resname, np.nan, np.nan, np.nan, 0])
+            else:
+                CG_row.append([chain, resnum, resname, x/total_mass, y/total_mass, z/total_mass, 1])
+
+            CG_DAT = pd.DataFrame(CG_row, columns=["Chain", "ResNum", "Residue", "X", "Y", "Z", "Weight"])
+            CG_DAT.to_csv(f"{OutDir}/{Path(InDAT).name}", index=False)
+            # CoarseGrain(InDAT, f"{OutDir}/{Path(InDAT).name}")
 
     return
 
-def PDBtoPointCloud(InputDir:Union[str, bytes, os.PathLike], AlignDir:Union[str, bytes, os.PathLike], 
+def PDB2PointCloud(InputDir:Union[str, bytes, os.PathLike], AlignDir:Union[str, bytes, os.PathLike], 
     PCDir:Union[str, bytes, os.PathLike], TrimDir:Union[str, bytes, os.PathLike]=None, CGDir:Union[str, bytes, os.PathLike]=None, 
     SSAlign:bool=False, RefPDB:Union[str, bytes, os.PathLike]=None)->None:
     """
@@ -337,10 +316,11 @@ def PDBtoPointCloud(InputDir:Union[str, bytes, os.PathLike], AlignDir:Union[str,
     Input: Input directory that contains PDB files
     SSAlign: Do structure alignment based on residues that form secondary structures, alphahelixes and beta strands
     trim: Trim every input PDB files according to Reference PDB, the Reference must be specified
-    RefPDB: PDB file used as reference in structure alignment. If not specified, the centroid structure will be calculated and used
+    RefPDB: PDB file used as reference in structure alignment. If None, the centroid structure will be calculated and used
     --------------------
     Output: Trimmed and aligned PDB files, CSV pointcloud files
     """
+
     # ===== Trim =====
     # If trim, the RefPDB must be specified
     if TrimDir:
@@ -351,7 +331,7 @@ def PDBtoPointCloud(InputDir:Union[str, bytes, os.PathLike], AlignDir:Union[str,
             os.mkdir(TrimDir)
             print(f"\tCreate directory for trimmed PDBs: {TrimDir}")
         PDB_trim(InputDir, RefPDB, TrimDir)
-        print(f"\t...Trimming done, saved files to {TrimDir}")
+        print(f"\t...Trimming done")
     
     # ===== Align =====
     print("Start Aligning...")
@@ -363,15 +343,15 @@ def PDBtoPointCloud(InputDir:Union[str, bytes, os.PathLike], AlignDir:Union[str,
         PDB_align(TrimDir, AlignDir, refPDB=RefPDB, SSAlign=SSAlign)
     else:
         PDB_align(InputDir, AlignDir, refPDB=RefPDB, SSAlign=SSAlign)
-    print(f"\t...Aligning done, saved files to {AlignDir}")
+    print(f"\t...Aligning done")
 
     # ===== To point cloud =====
     print("Start converting to atom cloud...")
     if not os.path.exists(PCDir):
         print(f"\tCreate directory for atom cloud CSVs: {PCDir}")
         os.mkdir(PCDir)
-    PDB_to_AtomCloud(AlignDir, PCDir)
-    print(f"\t...Convert to atom cloud done, saved files to {PCDir}")
+    PDB2AtomCloud_batch(AlignDir, PCDir)
+    print(f"\t...Converting done")
 
     # ===== Coarse graining =====
     if CGDir:
@@ -379,8 +359,8 @@ def PDBtoPointCloud(InputDir:Union[str, bytes, os.PathLike], AlignDir:Union[str,
         if not os.path.exists(CGDir):
             print(f"\tCreate directory for coarse-grained point cloud CSVs: {CGDir}")
             os.mkdir(CGDir)
-        PointCloudCG(PCDir, CGDir)
-        print(f"\t...Coarse graining done, saved files to {CGDir}")
+        AtomCloud2CG_batch(PCDir, CGDir)
+        print(f"\t...Coarse graining done")
     return
 
 class assign_weight:
@@ -411,10 +391,11 @@ class assign_weight:
         self.df.to_csv(self.filename)
         return
 
-def reweight_by_dict(InDir, WeightDict):
+def reweight_by_dict(InDir, WeightDict:dict):
     """
     change residue weight in coarse grained csv file according to provided dict
     """
+
     re_weight = assign_weight()
     re_weight.by_resi_number(WeightDict)
 

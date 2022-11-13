@@ -15,7 +15,8 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
 
-from .PropertyParams import GranthamSim, SM_THREAD_NORM_Sim, PMBEC_Sim
+from ._PropertyParams import GranthamSim, SM_THREAD_NORM_Sim, PMBEC_Sim
+from ._default import DEF_shape_param, DEF_subtype_anchors, DEF_anchor_dir
 
 class CG_SD_Calculator():
 
@@ -141,7 +142,7 @@ class CG_SD_Calculator():
         
         return (FilePath, self.CloudSimilarity(Coord, Resi, Coord, Resi, Weight, Weight))
 
-    def CalcAnchorDist(self, InDir, anchor_dict:dict, ListFile=None, anchor_Dir="HLA1_models/CG_DAT"):
+    def CalcAnchorDist(self, InDir, anchor_Dir, anchor_dict:dict, ListFile=None):
 
         """
         Distance of target structures to specified anchor structures
@@ -196,3 +197,53 @@ class CG_SD_Calculator():
             self.DistMat.loc[Path(comb[0]).stem, Path(comb[1]).stem] = distance
 
         return
+
+# ====================================================================================
+def CGCalcMat(CGDATDir, SimMtx, sigma, k, AlleleListFile=None, DistMat_output=None, Standardize:bool=False):
+    """
+    Calculte pairwise structure distance matrix using coarse-grained distance metric
+    ====================================
+    Input:
+        CGDATDir: Directory of coarse-grained HLA structures
+        SimMtx (optional): Similarity matrix, choose from ["Grantham", "SM_THREAD_NORM", "PMBEC"]
+        AlleleListFile (optional): List file for selecting alleles, see "../Dataset_split" directory
+        sigma, k (optional): Shape parameters
+        DistMat_output (optional): File name of distance matrix
+        Standardize (optional): If true, standardize the distance matrix to [0-1]
+
+    Output:
+        Distance_matrix
+    """
+    metric = CG_SD_Calculator(SimilarityMatrix=SimMtx)
+
+    metric.sigma = sigma
+    metric.k = k
+
+    metric.CalcDistMtx(CGDATDir, AlleleListFile)
+
+    if Standardize:
+        metric.DistMat = (metric.DistMat - metric.DistMat.min().min()) / (metric.DistMat.max().max() - metric.DistMat.min().min())
+
+    if DistMat_output:
+        metric.SaveDist(DistMat_output)
+
+    return metric.DistMat
+
+def CGAnchorMat(CGDATDir, SimMtx, sigma, k, CGAnchorDir=DEF_anchor_dir, anchor_dict:dict=DEF_subtype_anchors, AlleleListFile=None, DistMat_output=None):
+    """
+    Calculate distances of query alleles to predifined anchor alleles
+    =======================================
+    Input:
+        CGDATDir: directory of CGDAT files of query alleles
+    """
+    metric = CG_SD_Calculator(SimilarityMatrix=SimMtx)
+
+    metric.sigma = sigma
+    metric.k = k
+    
+    metric.CalcAnchorDist(CGDATDir, CGAnchorDir, anchor_dict, AlleleListFile)
+
+    if DistMat_output:
+        metric.SaveDist(DistMat_output)
+
+    return metric.DistMat
