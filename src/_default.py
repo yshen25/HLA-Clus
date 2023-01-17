@@ -8,8 +8,11 @@ from pathlib import Path
 
 # DEF_ref_pdb = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dat', '1i4f_Crown.pdb') # template pdb for trimming and aligning
 # DEF_anchor_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'dat', 'Anchor_Alleles')
-DEF_ref_pdb = str(Path(__file__).resolve().joinpath('dat/1i4f_Crown.pdb'))
-DEF_anchor_dir = str(Path(__file__).resolve().joinpath('dat/Anchor_Alleles'))
+DEF_ref_pdb = str(Path(__file__).resolve().parent.joinpath('dat/1i4f_Crown.pdb'))
+DEF_anchor_dir = str(Path(__file__).resolve().parent.joinpath('dat/Anchor_Alleles'))
+
+# DEF_ref_pdb = 'dat/1i4f_Crown.pdb'
+# DEF_anchor_dir = 'dat/Anchor_Alleles'
 
 DEF_WeightDict = {"A":{63:9.9,67:7.6,116:5.8,9:5.4,97:4.7,152:4.6,167:3.8,156:3.7,74:3.6,70:3.2,80:3.0,171:2.9,45:2.8,77:2.7,76:2.4,114:2.3,99:2.1,95:1.5,158:1.4,24:1.2,7:1.0}}
 

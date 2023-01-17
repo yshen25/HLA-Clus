@@ -19,9 +19,9 @@ setuptools.setup(
         'Source Code': 'https://github.com/yshen25/HLAcc'
     },
     package_dir={'': 'src'},
-    packages=['HLAcc'],
-    # packages=setuptools.find_packages(where='src'),
-    package_data={'HLAcc': ['dat/*']},
+    # packages=['HLAcc'],
+    packages=setuptools.find_packages(where='src'),
+    # package_data={'HLAcc': ['dat/*']},
     classifiers=[
         # see https://pypi.org/classifiers/
         'Development Status :: 5 - Production/Stable',
