@@ -1,4 +1,4 @@
-# HLAcc
+# HLA-Clus
 > **Package for clustering HLA alleles based on structural landscape of peptide binding groove**
 
 ## Introduction
