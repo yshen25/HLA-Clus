@@ -57,7 +57,7 @@ HLAcc relies on the following public available packages
  
 ## Usage
  0. Structural modeling  
- HLAcc takes 3D HLA structures in **.pdb** format as input. We have modeled 451 HLA I structures using ColabFold and Rosetta FastRelax, which could be found [here].  
+ HLAcc takes 3D HLA structures in **.pdb** format as input. We have modeled 451 HLA I structures using ColabFold and Rosetta FastRelax, which could be found [here](https://github.com/yshen25/HLA_clustering/tree/main/HLA1_models/ALIGN).  
  You could also use costomized HLA structures.  
  1. Structure processing  
  Put all structures in one directory, then specify a destination directory for coarse grained structures. Then use **Processing_pipeline** function to accomplish the task:  
